@@ -21,19 +21,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-import React, { FC } from "react";
-import { RouteComponentProps, withRouter } from "react-router-dom";
+import React, { FC, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import unified from "unified";
 import parseMarkdown from "remark-parse";
 import sanitize from "rehype-sanitize";
 import remark2rehype from "remark-rehype";
 import rehype2react from "rehype-react";
 import gfm from "remark-gfm";
-import { BinderContext } from "@scm-manager/ui-extensions";
+import { useBinder } from "@scm-manager/ui-extensions";
 import ErrorBoundary from "../ErrorBoundary";
 import { create as createMarkdownHeadingRenderer } from "./MarkdownHeadingRenderer";
 import { create as createMarkdownLinkRenderer } from "./MarkdownLinkRenderer";
-import { useTranslation, WithTranslation, withTranslation } from "react-i18next";
+import { useTranslation } from "react-i18next";
 import Notification from "../Notification";
 import { createTransformer as createChangesetShortlinkParser } from "./remarkChangesetShortLinkParser";
 import { createTransformer as createValuelessTextAdapter } from "./remarkValuelessTextAdapter";
@@ -48,21 +48,16 @@ import merge from "deepmerge";
 import { createComponentList } from "./createComponentList";
 import { ProtocolLinkRendererExtension, ProtocolLinkRendererExtensionMap } from "./markdownExtensions";
 
-type Props = RouteComponentProps &
-  WithTranslation & {
-    content: string;
-    renderContext?: object;
-    renderers?: any;
-    skipHtml?: boolean;
-    enableAnchorHeadings?: boolean;
-    // basePath for markdown links
-    basePath?: string;
-    permalink?: string;
-    mdastPlugins?: AstPlugin[];
-  };
-
-type State = {
-  contentRef: HTMLDivElement | null | undefined;
+type Props = {
+  content: string;
+  renderContext?: object;
+  renderers?: any;
+  skipHtml?: boolean;
+  enableAnchorHeadings?: boolean;
+  // basePath for markdown links
+  basePath?: string;
+  permalink?: string;
+  mdastPlugins?: AstPlugin[];
 };
 
 const xmlMarkupSample = `\`\`\`xml
@@ -85,7 +80,7 @@ const MarkdownErrorNotification: FC = () => {
         </pre>
         <p>
           {t("markdownErrorNotification.spec")}:{" "}
-          <a href="https://github.github.com/gfm/" target="_blank">
+          <a href="https://github.github.com/gfm/" target="_blank" rel="noreferrer">
             GitHub Flavored Markdown Spec
           </a>
         </p>
@@ -94,136 +89,109 @@ const MarkdownErrorNotification: FC = () => {
   );
 };
 
-class MarkdownView extends React.Component<Props, State> {
-  static contextType = BinderContext;
+const MarkdownView: FC<Props> = ({
+  content,
+  renderContext,
+  renderers,
+  skipHtml = false,
+  enableAnchorHeadings = false,
+  basePath,
+  permalink,
+  mdastPlugins = [],
+}) => {
+  const [contentRef, setContentRef] = useState<HTMLDivElement | null | undefined>(null);
+  const [t] = useTranslation("repos");
+  const context = useBinder();
+  const location = useLocation();
 
-  static defaultProps: Partial<Props> = {
-    enableAnchorHeadings: false,
-    skipHtml: false
-  };
-
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      contentRef: null
-    };
-  }
-
-  shouldComponentUpdate(nextProps: Readonly<Props>, nextState: Readonly<State>): boolean {
-    // We have check if the contentRef changed and update afterwards so the page can scroll to the anchor links.
-    // Otherwise it can happen that componentDidUpdate is never executed depending on how fast the markdown got rendered
-    // We also have to check if props have changed, because we also want to rerender if one of our props has changed
-    return this.state.contentRef !== nextState.contentRef || this.props !== nextProps;
-  }
-
-  componentDidUpdate() {
-    const { contentRef } = this.state;
-    // we have to use componentDidUpdate, because we have to wait until all
-    // children are rendered and componentDidMount is called before the
-    // markdown content was rendered.
-    const hash = this.props.location.hash;
+  useEffect(() => {
+    const hash = location.hash;
     if (contentRef && hash) {
       // we query only child elements, to avoid strange scrolling with multiple
       // markdown elements on one page.
-      const elementId = decodeURIComponent(hash.substring(1) /* remove # */);
+      const elementId = decodeURIComponent(hash.substring(1));
       const element = contentRef.querySelector(`[id="${elementId}"]`);
       if (element && element.scrollIntoView) {
         element.scrollIntoView();
       }
     }
+  }, [location, contentRef]);
+
+  const rendererFactory = context.getExtension("markdown-renderer-factory");
+  let remarkRendererList = renderers;
+
+  if (rendererFactory) {
+    remarkRendererList = rendererFactory(renderContext);
   }
 
-  render() {
-    const {
-      content,
-      renderers,
-      renderContext,
-      enableAnchorHeadings,
-      skipHtml,
-      basePath,
-      permalink,
-      t,
-      mdastPlugins = []
-    } = this.props;
+  if (!remarkRendererList) {
+    remarkRendererList = {};
+  }
 
-    const rendererFactory = this.context.getExtension("markdown-renderer-factory");
-    let remarkRendererList = renderers;
+  if (enableAnchorHeadings && permalink && !remarkRendererList.heading) {
+    remarkRendererList.heading = createMarkdownHeadingRenderer(permalink);
+  }
 
-    if (rendererFactory) {
-      remarkRendererList = rendererFactory(renderContext);
-    }
+  let protocolLinkRendererExtensions: ProtocolLinkRendererExtensionMap = {};
+  if (!remarkRendererList.link) {
+    const extensionPoints = context.getExtensions("markdown-renderer.link.protocol") as ProtocolLinkRendererExtension[];
+    protocolLinkRendererExtensions = extensionPoints.reduce<ProtocolLinkRendererExtensionMap>(
+      (prev, { protocol, renderer }) => {
+        prev[protocol] = renderer;
+        return prev;
+      },
+      {}
+    );
+    remarkRendererList.link = createMarkdownLinkRenderer(basePath, protocolLinkRendererExtensions);
+  }
 
-    if (!remarkRendererList) {
-      remarkRendererList = {};
-    }
+  if (!remarkRendererList.code) {
+    remarkRendererList.code = MarkdownCodeRenderer;
+  }
 
-    if (enableAnchorHeadings && permalink && !remarkRendererList.heading) {
-      remarkRendererList.heading = createMarkdownHeadingRenderer(permalink);
-    }
+  const remarkPlugins = [...mdastPlugins, createChangesetShortlinkParser(t), createValuelessTextAdapter()].map(
+    createMdastPlugin
+  );
 
-    let protocolLinkRendererExtensions: ProtocolLinkRendererExtensionMap = {};
-    if (!remarkRendererList.link) {
-      const extensionPoints = this.context.getExtensions(
-        "markdown-renderer.link.protocol"
-      ) as ProtocolLinkRendererExtension[];
-      protocolLinkRendererExtensions = extensionPoints.reduce<ProtocolLinkRendererExtensionMap>(
-        (prev, { protocol, renderer }) => {
-          prev[protocol] = renderer;
-          return prev;
+  let processor = unified()
+    .use(parseMarkdown)
+    .use(gfm)
+    .use(remarkPlugins)
+    .use(remark2rehype, { allowDangerousHtml: true });
+
+  if (!skipHtml) {
+    processor = processor.use(raw);
+  }
+
+  processor = processor
+    .use(slug)
+    .use(
+      sanitize,
+      merge(gh, {
+        attributes: {
+          code: ["className"], // Allow className for code elements, this is necessary to extract the code language
         },
-        {}
-      );
-      remarkRendererList.link = createMarkdownLinkRenderer(basePath, protocolLinkRendererExtensions);
-    }
+        clobberPrefix: "", // Do not prefix user-provided ids and class names,
+        protocols: {
+          href: Object.keys(protocolLinkRendererExtensions),
+        },
+      })
+    )
+    .use(rehype2react, {
+      createElement: React.createElement,
+      passNode: true,
+      components: createComponentList(remarkRendererList, { permalink }),
+    });
 
-    if (!remarkRendererList.code) {
-      remarkRendererList.code = MarkdownCodeRenderer;
-    }
+  const renderedMarkdown: any = processor.processSync(content).result;
 
-    const remarkPlugins = [...mdastPlugins, createChangesetShortlinkParser(t), createValuelessTextAdapter()].map(
-      createMdastPlugin
-    );
+  return (
+    <ErrorBoundary fallback={MarkdownErrorNotification}>
+      <div ref={setContentRef} className="content is-word-break">
+        {renderedMarkdown}
+      </div>
+    </ErrorBoundary>
+  );
+};
 
-    let processor = unified()
-      .use(parseMarkdown)
-      .use(gfm)
-      .use(remarkPlugins)
-      .use(remark2rehype, { allowDangerousHtml: true });
-
-    if (!skipHtml) {
-      processor = processor.use(raw);
-    }
-
-    processor = processor
-      .use(slug)
-      .use(
-        sanitize,
-        merge(gh, {
-          attributes: {
-            code: ["className"] // Allow className for code elements, this is necessary to extract the code language
-          },
-          clobberPrefix: "", // Do not prefix user-provided ids and class names,
-          protocols: {
-            href: Object.keys(protocolLinkRendererExtensions)
-          }
-        })
-      )
-      .use(rehype2react, {
-        createElement: React.createElement,
-        passNode: true,
-        components: createComponentList(remarkRendererList, { permalink })
-      });
-
-    const renderedMarkdown: any = processor.processSync(content).result;
-
-    return (
-      <ErrorBoundary fallback={MarkdownErrorNotification}>
-        <div ref={el => this.setState({ contentRef: el })} className="content is-word-break">
-          {renderedMarkdown}
-        </div>
-      </ErrorBoundary>
-    );
-  }
-}
-
-export default withRouter(withTranslation("repos")(MarkdownView));
+export default MarkdownView;
