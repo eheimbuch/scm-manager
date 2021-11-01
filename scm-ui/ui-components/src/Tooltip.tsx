@@ -29,6 +29,7 @@ type Props = {
   location: TooltipLocation;
   multiline?: boolean;
   children: ReactNode;
+  id?: string;
 };
 
 export type TooltipLocation = "bottom" | "right" | "top" | "left";
@@ -39,7 +40,7 @@ class Tooltip extends React.Component<Props> {
   };
 
   render() {
-    const { className, message, location, multiline, children } = this.props;
+    const { className, message, location, multiline, children, id } = this.props;
     let classes = `tooltip has-tooltip-${location}`;
     if (multiline) {
       classes += " has-tooltip-multiline";
@@ -50,6 +51,7 @@ class Tooltip extends React.Component<Props> {
 
     return (
       <span className={classes} data-tooltip={message}>
+        <span id={id} role={"tooltip"} hidden={true}>{message}</span>
         {children}
       </span>
     );

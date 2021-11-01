@@ -101,9 +101,9 @@ export const InnerInputField: FC<FieldProps<BaseProps, HTMLInputElement, string>
     .toString(16)
     .substring(1);
   if (validationError) {
-    helper = <p id={helperId} className="help is-danger">{errorMessage}</p>;
+    helper = <p className="help is-danger">{errorMessage}</p>;
   } else if (informationMessage) {
-    helper = <p id={helperId} className="help is-info">{informationMessage}</p>;
+    helper = <p className="help is-info">{informationMessage}</p>;
   }
   const someId = Math.floor((1 + Math.random()) * 0x1000000)
     .toString(16)
@@ -111,7 +111,7 @@ export const InnerInputField: FC<FieldProps<BaseProps, HTMLInputElement, string>
 
   return (
     <fieldset className={classNames("field", className)} disabled={readOnly}>
-      <LabelWithHelpIcon id={someId} label={label} helpText={helpText} />
+      <LabelWithHelpIcon id={someId} tooltipId={helperId} label={label} helpText={helpText} />
       <div className="control">
         <input
           aria-labelledby={someId}

@@ -26,9 +26,8 @@ import Icon from "./Icon";
 
 type Props = {
   className?: string;
-  message?: string;
 };
 
-const HelpIcon: FC<Props> = ({ className, message }) => <Icon name="question-circle" color="blue-light" className={className} ariaLabel={message} />;
+const HelpIcon: FC<Props> = ({ className }) => <Icon name="question-circle" color="blue-light" className={className} />;
 
 export default HelpIcon;
