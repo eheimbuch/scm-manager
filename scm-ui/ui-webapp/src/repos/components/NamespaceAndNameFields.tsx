@@ -115,6 +115,7 @@ const NamespaceAndNameFields: FC<Props> = ({ repository, onChange, setValid, dis
     <>
       {renderNamespaceField()}
       <InputField
+        // aria-label={t("repository.name")}
         label={t("repository.name")}
         onChange={handleNameChange}
         value={repository ? repository.name : ""}

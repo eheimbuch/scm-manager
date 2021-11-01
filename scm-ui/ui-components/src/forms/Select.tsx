@@ -107,11 +107,16 @@ const InnerSelect: FC<FieldProps<BaseProps, HTMLSelectElement, string>> = ({
 
   const loadingClass = loading ? "is-loading" : "";
 
+  const someId = Math.floor((1 + Math.random()) * 0x1000000)
+    .toString(16)
+    .substring(1);
+
   return (
     <fieldset className="field" disabled={readOnly}>
-      <LabelWithHelpIcon label={label} helpText={helpText} />
+      <LabelWithHelpIcon id={someId} label={label} helpText={helpText} />
       <div className={classNames("control select", loadingClass, className)}>
         <select
+          aria-labelledby={someId}
           name={name}
           ref={field}
           value={value}

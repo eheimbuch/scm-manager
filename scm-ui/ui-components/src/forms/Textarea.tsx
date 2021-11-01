@@ -96,17 +96,26 @@ const InnerTextarea: FC<FieldProps<BaseProps, HTMLTextAreaElement, string>> = ({
 
   const errorView = validationError ? "is-danger" : "";
   let helper;
+  const helperId = Math.floor((1 + Math.random()) * 0x1000000)
+    .toString(16)
+    .substring(1);
   if (validationError) {
-    helper = <p className="help is-danger">{errorMessage}</p>;
+    helper = <p id={helperId} className="help is-danger">{errorMessage}</p>;
   } else if (informationMessage) {
-    helper = <p className="help is-info">{informationMessage}</p>;
+    helper = <p id={helperId} className="help is-info">{informationMessage}</p>;
   }
+
+  const someId = Math.floor((1 + Math.random()) * 0x1000000)
+    .toString(16)
+    .substring(1);
 
   return (
     <fieldset className="field" disabled={readOnly}>
-      <LabelWithHelpIcon label={label} helpText={helpText} />
+      <LabelWithHelpIcon id={someId} label={label} helpText={helpText} />
       <div className="control">
         <textarea
+          aria-labelledby={someId}
+          aria-describedby={helperId}
           className={classNames("textarea", errorView)}
           ref={ref}
           name={name}

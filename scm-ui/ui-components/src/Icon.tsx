@@ -33,6 +33,7 @@ type Props = {
   className?: string;
   onClick?: (event: React.MouseEvent) => void;
   testId?: string;
+  ariaLabel?: string;
 };
 
 export default class Icon extends React.Component<Props> {
@@ -42,10 +43,11 @@ export default class Icon extends React.Component<Props> {
   };
 
   render() {
-    const { title, iconStyle, name, color, className, onClick, testId } = this.props;
+    const { title, iconStyle, name, color, className, onClick, testId, ariaLabel } = this.props;
     if (title) {
       return (
         <i
+          aria-label={ariaLabel}
           onClick={onClick}
           title={title}
           className={classNames(iconStyle, "fa-fw", "fa-" + name, `has-text-${color}`, className)}
@@ -55,6 +57,7 @@ export default class Icon extends React.Component<Props> {
     }
     return (
       <i
+        aria-label={ariaLabel}
         onClick={onClick}
         className={classNames(iconStyle, "fa-" + name, `has-text-${color}`, className)}
         {...createAttributesForTesting(testId)}

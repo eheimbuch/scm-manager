@@ -97,16 +97,25 @@ export const InnerInputField: FC<FieldProps<BaseProps, HTMLInputElement, string>
 
   const errorView = validationError ? "is-danger" : "";
   let helper;
+  const helperId = Math.floor((1 + Math.random()) * 0x1000000)
+    .toString(16)
+    .substring(1);
   if (validationError) {
-    helper = <p className="help is-danger">{errorMessage}</p>;
+    helper = <p id={helperId} className="help is-danger">{errorMessage}</p>;
   } else if (informationMessage) {
-    helper = <p className="help is-info">{informationMessage}</p>;
+    helper = <p id={helperId} className="help is-info">{informationMessage}</p>;
   }
+  const someId = Math.floor((1 + Math.random()) * 0x1000000)
+    .toString(16)
+    .substring(1);
+
   return (
     <fieldset className={classNames("field", className)} disabled={readOnly}>
-      <LabelWithHelpIcon label={label} helpText={helpText} />
+      <LabelWithHelpIcon id={someId} label={label} helpText={helpText} />
       <div className="control">
         <input
+          aria-labelledby={someId}
+          aria-describedby={helperId}
           ref={field}
           name={name}
           className={classNames("input", errorView)}

@@ -29,6 +29,7 @@ import HelpIcon from "./HelpIcon";
 
 type Props = {
   message: string;
+  id?: string;
   multiline?: boolean;
   className?: string;
 };
@@ -37,12 +38,13 @@ const AbsolutePositionTooltip = styled(Tooltip)`
   position: absolute;
 `;
 
-const Help: FC<Props> = ({ message, multiline, className }) => (
+const Help: FC<Props> = ({ message, multiline, className, id }) => (
   <AbsolutePositionTooltip
+    id={id}
     className={classNames("is-inline-block", "pl-1", multiline ? "has-tooltip-multiline" : undefined, className)}
     message={message}
   >
-    <HelpIcon />
+    <HelpIcon message={message}/>
   </AbsolutePositionTooltip>
 );
 
