@@ -34,6 +34,7 @@ import sonia.scm.repository.HealthCheckService;
 import sonia.scm.repository.NamespaceAndName;
 import sonia.scm.repository.Repository;
 import sonia.scm.repository.RepositoryManager;
+import sonia.scm.search.ReindexService;
 import sonia.scm.web.VndMediaType;
 
 import javax.inject.Inject;
@@ -63,18 +64,20 @@ public class RepositoryResource {
   private final SingleResourceManagerAdapter<Repository, RepositoryDto> adapter;
   private final RepositoryBasedResourceProvider resourceProvider;
   private final HealthCheckService healthCheckService;
+  private final ReindexService reindexService;
 
   @Inject
   public RepositoryResource(
     RepositoryToRepositoryDtoMapper repositoryToDtoMapper,
     RepositoryDtoToRepositoryMapper dtoToRepositoryMapper, RepositoryManager manager,
-    RepositoryBasedResourceProvider resourceProvider, HealthCheckService healthCheckService) {
+    RepositoryBasedResourceProvider resourceProvider, HealthCheckService healthCheckService, ReindexService reindexService) {
     this.dtoToRepositoryMapper = dtoToRepositoryMapper;
     this.manager = manager;
     this.repositoryToDtoMapper = repositoryToDtoMapper;
     this.adapter = new SingleResourceManagerAdapter<>(manager, Repository.class);
     this.resourceProvider = resourceProvider;
     this.healthCheckService = healthCheckService;
+    this.reindexService = reindexService;
   }
 
   /**
@@ -292,6 +295,25 @@ public class RepositoryResource {
   public void runHealthCheck(@PathParam("namespace") String namespace, @PathParam("name") String name) {
     Repository repository = loadBy(namespace, name).get();
     healthCheckService.fullCheck(repository);
+  }
+
+  @POST
+  @Path("reindex")
+  @Operation(summary = "Recreate the search index for this repository", description = "Deletes the search search index for the repository and creates it anew.", tags = "Repository")
+  @ApiResponse(responseCode = "204", description = "reindex triggered")
+  @ApiResponse(responseCode = "401", description = "not authenticated / invalid credentials")
+  @ApiResponse(responseCode = "403", description = "not authorized, the current user does not have the permissions to recreate the index")
+  @ApiResponse(
+    responseCode = "404",
+    description = "not found, no repository with the specified namespace and name available",
+    content = @Content(
+      mediaType = VndMediaType.ERROR_TYPE,
+      schema = @Schema(implementation = ErrorDto.class)
+    ))
+  @ApiResponse(responseCode = "500", description = "internal server error")
+  public void reindex(@PathParam("namespace") String namespace, @PathParam("name") String name) {
+    Repository repository = loadBy(namespace, name).get();
+    reindexService.reindex(repository);
   }
 
   private Repository processUpdate(RepositoryDto repositoryDto, Repository existing) {

@@ -420,6 +420,10 @@ class ResourceLinks {
     String runHealthCheck(String namespace, String name) {
       return repositoryLinkBuilder.method("getRepositoryResource").parameters(namespace, name).method("runHealthCheck").parameters().href();
     }
+
+    String reindex(String namespace, String name) {
+      return repositoryLinkBuilder.method("getRepositoryResource").parameters(namespace, name).method("reindex").parameters().href();
+    }
   }
 
   RepositoryCollectionLinks repositoryCollection() {

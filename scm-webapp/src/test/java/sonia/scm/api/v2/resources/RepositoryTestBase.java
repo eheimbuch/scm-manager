@@ -26,6 +26,7 @@ package sonia.scm.api.v2.resources;
 
 import sonia.scm.repository.HealthCheckService;
 import sonia.scm.repository.RepositoryManager;
+import sonia.scm.search.ReindexService;
 
 import static com.google.inject.util.Providers.of;
 
@@ -51,6 +52,7 @@ abstract class RepositoryTestBase {
   RepositoryExportResource repositoryExportResource;
   RepositoryPathsResource repositoryPathsResource;
   HealthCheckService healthCheckService;
+  ReindexService reindexService;
 
   RepositoryRootResource getRepositoryRootResource() {
     RepositoryBasedResourceProvider repositoryBasedResourceProvider = new RepositoryBasedResourceProvider(
@@ -75,7 +77,8 @@ abstract class RepositoryTestBase {
         dtoToRepositoryMapper,
         manager,
         repositoryBasedResourceProvider,
-        healthCheckService)),
+        healthCheckService,
+        reindexService)),
       of(repositoryCollectionResource),
       of(repositoryImportResource));
   }

@@ -58,7 +58,7 @@ import java.util.Set;
 @XmlRootElement(name = "repositories")
 @StaticPermissions(
   value = "repository",
-  permissions = {"read", "modify", "delete", "rename", "healthCheck", "pull", "push", "permissionRead", "permissionWrite", "archive", "export"},
+  permissions = {"read", "modify", "delete", "rename", "healthCheck", "pull", "push", "permissionRead", "permissionWrite", "archive", "export", "reindex"},
   custom = true, customGlobal = true,
   guards = {
     @Guard(guard = RepositoryPermissionGuard.class)

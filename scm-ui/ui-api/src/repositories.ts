@@ -253,6 +253,18 @@ export const useRunHealthCheck = () => {
   };
 };
 
+export const useReindex = () => {
+  const { mutate, isLoading, error } = useMutation<unknown, Error, Repository>(repository => {
+    const link = requiredLink(repository, "reindex");
+    return apiClient.post(link);
+  });
+  return {
+    reindex: (repository: Repository) => mutate(repository),
+    isLoading,
+    error
+  };
+};
+
 export const useExportInfo = (repository: Repository): ApiResultWithFetching<ExportInfo> => {
   const link = requiredLink(repository, "exportInfo");
   //TODO Refetch while exporting to update the page

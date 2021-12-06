@@ -29,6 +29,7 @@ import RenameRepository from "./RenameRepository";
 import DeleteRepo from "./DeleteRepo";
 import ArchiveRepo from "./ArchiveRepo";
 import UnarchiveRepo from "./UnarchiveRepo";
+import ReindexRepo from "./ReindexRepo";
 
 type Props = {
   repository: Repository;
@@ -49,6 +50,9 @@ const RepositoryDangerZone: FC<Props> = ({ repository }) => {
   }
   if (repository?._links?.unarchive) {
     dangerZone.push(<UnarchiveRepo repository={repository} />);
+  }
+  if (repository?._links?.reindex) {
+    dangerZone.push(<ReindexRepo repository={repository} />);
   }
   if (dangerZone.length === 0) {
     return null;

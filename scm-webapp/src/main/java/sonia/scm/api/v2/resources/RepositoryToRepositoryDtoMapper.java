@@ -165,6 +165,9 @@ public abstract class RepositoryToRepositoryDtoMapper extends BaseMapper<Reposit
     if (RepositoryPermissions.healthCheck(repository).isPermitted() && !healthCheckService.checkRunning(repository)) {
       linksBuilder.single(link("runHealthCheck", resourceLinks.repository().runHealthCheck(repository.getNamespace(), repository.getName())));
     }
+    if (RepositoryPermissions.reindex(repository).isPermitted()) {
+      linksBuilder.single(link("reindex", resourceLinks.repository().reindex(repository.getNamespace(), repository.getName())));
+    }
 
     Embedded.Builder embeddedBuilder = embeddedBuilder();
     applyEnrichers(new EdisonHalAppender(linksBuilder, embeddedBuilder), repository);
