@@ -44,16 +44,23 @@ import java.util.Optional;
 @Extension
 public class ChangesetIndexer implements ServletContextListener {
 
+  private final IndexLogStore logStore;
   private final SearchEngine searchEngine;
+  private final RepositoryServiceFactory repositoryServiceFactory;
 
   @Inject
-  public ChangesetIndexer(SearchEngine searchEngine) {
+  public ChangesetIndexer(IndexLogStore logStore, SearchEngine searchEngine, RepositoryServiceFactory repositoryServiceFactory) {
+    this.logStore = logStore;
     this.searchEngine = searchEngine;
+    this.repositoryServiceFactory = repositoryServiceFactory;
   }
 
   @Override
   public void contextInitialized(ServletContextEvent servletContextEvent) {
-    searchEngine.forType(Changeset.class).update(ReIndexAll.class);
+    Optional<IndexLog> indexLog = logStore.defaultIndex().get(Changeset.class);
+    if (!indexLog.isPresent() || indexLog.get().getVersion() != Changeset.VERSION) {
+      searchEngine.forType(Changeset.class).update(ReIndexAll.class);
+    }
   }
 
   @Override
@@ -61,9 +68,16 @@ public class ChangesetIndexer implements ServletContextListener {
     // Do nothing
   }
 
-  @Subscribe(async = false)
+  @Subscribe
   public void handleEvent(PostReceiveRepositoryHookEvent event) {
-    searchEngine.forType(Changeset.class).update(ReIndexAll.class);
+    searchEngine.forType(Changeset.class).update(index -> {
+      try {
+        index.delete().by(event.getRepository()).execute();
+        reindexRepository(repositoryServiceFactory, index, event.getRepository());
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    });
   }
 
   private void handleEvent(Repository repository, Changeset changeset) {
@@ -82,43 +96,40 @@ public class ChangesetIndexer implements ServletContextListener {
     return Id.of(Changeset.class, changeset).and(repository);
   }
 
+  private static void reindexRepository(RepositoryServiceFactory repositoryServiceFactory,Index<Changeset> index, Repository repository) throws IOException {
+    try (RepositoryService repositoryService = repositoryServiceFactory.create(repository)) {
+      repositoryService.getLogCommand().getChangesets().getChangesets().forEach(changeset -> store(index, repository, changeset));
+    }
+  }
+
   private static class ReIndexAll implements IndexTask<Changeset> {
 
     private final RepositoryServiceFactory repositoryServiceFactory;
     private final RepositoryManager repositoryManager;
-    private final IndexLogStore logStore;
 
     @Inject
-    private ReIndexAll(RepositoryServiceFactory repositoryServiceFactory, RepositoryManager repositoryManager, IndexLogStore logStore) {
+    private ReIndexAll(RepositoryServiceFactory repositoryServiceFactory, RepositoryManager repositoryManager) {
       this.repositoryServiceFactory = repositoryServiceFactory;
       this.repositoryManager = repositoryManager;
-      this.logStore = logStore;
     }
 
     @Override
     public void update(Index<Changeset> index) {
-      Optional<IndexLog> indexLog = logStore.defaultIndex().get(Changeset.class);
-      if (!indexLog.isPresent() || indexLog.get().getVersion() != Changeset.VERSION) {
-        try {
-          reindexAll(index);
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
+      try {
+        reindexAll(index);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
     }
 
     private void reindexAll(Index<Changeset> index) throws IOException {
       index.delete().all();
       for (Repository repo : repositoryManager.getAll()) {
-        reindexRepository(index, repo);
+        reindexRepository(repositoryServiceFactory, index, repo);
       }
     }
 
-    private void reindexRepository(Index<Changeset> index, Repository repository) throws IOException {
-      try (RepositoryService repositoryService = repositoryServiceFactory.create(repository)) {
-        repositoryService.getLogCommand().getChangesets().getChangesets().forEach(changeset -> store(index, repository, changeset));
-      }
-    }
+
   }
 
 }
