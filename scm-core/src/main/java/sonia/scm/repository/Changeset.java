@@ -27,6 +27,8 @@ package sonia.scm.repository;
 import lombok.EqualsAndHashCode;
 import sonia.scm.BasicPropertiesAware;
 import sonia.scm.ModelObject;
+import sonia.scm.search.Indexed;
+import sonia.scm.search.IndexedType;
 import sonia.scm.util.Util;
 import sonia.scm.util.ValidationUtil;
 
@@ -42,7 +44,10 @@ import java.util.List;
  * @author Sebastian Sdorra
  */
 @EqualsAndHashCode(callSuper = true)
+@IndexedType
 public class Changeset extends BasicPropertiesAware implements ModelObject {
+
+  static final int VERSION = 1;
 
   private static final long serialVersionUID = -8373308448928993039L;
 
@@ -59,16 +64,19 @@ public class Changeset extends BasicPropertiesAware implements ModelObject {
   /**
    * The date when the changeset was committed
    */
+  @Indexed
   private Long date;
 
   /**
    * The text of the changeset description
    */
+  @Indexed(defaultQuery = true, highlighted = true)
   private String description;
 
   /**
    * The changeset identification string
    */
+  @Indexed
   private String id;
 
   /**
