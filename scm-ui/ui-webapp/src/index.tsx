@@ -40,6 +40,27 @@ import ReduxAwareApiProvider from "./ReduxAwareApiProvider";
 
 binder.bind("changeset.description.tokens", ChangesetShortLink);
 
+binder.bind("repos.sources.content.actionbar.menu", {
+  action: () => console.log("abc"),
+  label: "test",
+  icon: "home",
+  category: "lala"
+});
+
+binder.bind("repos.sources.content.actionbar.menu", {
+  action: () => console.log("abc"),
+  label: "test",
+  icon: "home",
+  category: "lala"
+});
+
+binder.bind("repos.sources.content.actionbar.menu", {
+  action: () => console.log("abc"),
+  label: "test",
+  icon: "home",
+  category: "bb"
+});
+
 const root = document.getElementById("root");
 if (!root) {
   throw new Error("could not find root element");
