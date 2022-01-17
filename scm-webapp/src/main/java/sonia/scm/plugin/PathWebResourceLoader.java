@@ -38,19 +38,18 @@ import java.nio.file.Path;
  * @author Sebastian Sdorra
  * @since 2.0.0
  */
-public class PathWebResourceLoader implements WebResourceLoader
-{
+public class PathWebResourceLoader implements WebResourceLoader {
 
   private static final String SEPARATOR = "/";
+
+  private final Path directory;
 
   /**
    * the logger for PathWebResourceLoader
    */
-  private static final Logger LOG =
-    LoggerFactory.getLogger(PathWebResourceLoader.class);
+  private static final Logger LOG = LoggerFactory.getLogger(PathWebResourceLoader.class);
 
-  public PathWebResourceLoader(Path directory)
-  {
+  public PathWebResourceLoader(Path directory) {
     this.directory = directory;
   }
 
@@ -59,16 +58,12 @@ public class PathWebResourceLoader implements WebResourceLoader
     URL resource = null;
     Path file = directory.resolve(filePath(path));
 
-    if (Files.exists(file) && ! Files.isDirectory(file))
-    {
+    if (isValidPath(file)) {
       LOG.trace("found path {} at {}", path, file);
 
-      try
-      {
+      try {
         resource = file.toUri().toURL();
-      }
-      catch (MalformedURLException ex)
-      {
+      } catch (MalformedURLException ex) {
         LOG.error("could not transform path to url", ex);
       }
     } else {
@@ -78,6 +73,12 @@ public class PathWebResourceLoader implements WebResourceLoader
     return resource;
   }
 
+  private boolean isValidPath(Path file) {
+    return Files.exists(file)
+      && !Files.isDirectory(file)
+      && file.toAbsolutePath().startsWith(directory.toAbsolutePath());
+  }
+
   private String filePath(String path) {
     if (path.startsWith(SEPARATOR)) {
       return path.substring(1);
@@ -85,8 +86,4 @@ public class PathWebResourceLoader implements WebResourceLoader
     return path;
   }
 
-  //~--- fields ---------------------------------------------------------------
-
-  /** Field description */
-  private final Path directory;
 }
