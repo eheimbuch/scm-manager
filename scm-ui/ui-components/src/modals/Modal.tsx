@@ -24,7 +24,7 @@
 import React, { FC, MutableRefObject, useRef } from "react";
 import classNames from "classnames";
 import styled from "styled-components";
-import { Dialog } from "@headlessui/react";
+import * as Dialog from "@radix-ui/react-dialog";
 
 type ModalSize = "S" | "M" | "L";
 
@@ -44,7 +44,7 @@ type Props = {
   overflowVisible?: boolean;
 };
 
-const SizedModal = styled.div<{ size?: ModalSize; overflow: string }>`
+const SizedModal = styled(Dialog.Content)<{ size?: ModalSize; overflow: string }>`
   width: ${props => (props.size ? `${modalSizes[props.size]}%` : "640px")};
   overflow: ${props => props.overflow};
 `;
@@ -74,41 +74,53 @@ export const Modal: FC<Props> = ({
   const borderBottomRadiusAttribute = overflowVisible && !footer ? "inherit" : "unset";
 
   return (
-    <Dialog
-      open={active}
-      onClose={closeFunction}
-      className={classNames(
-        "modal",
-        { "is-active": active },
-        `is-overflow-${overflowAttribute}`,
-        `is-border-bottom-radius-${borderBottomRadiusAttribute}`,
-        className
-      )}
-      initialFocus={initialFocusRef ?? closeButtonRef}
-    >
-      <Dialog.Overlay className="modal-background" />
-      <SizedModal className="modal-card" size={size} overflow={overflowAttribute}>
-        <Dialog.Title as="header" className={classNames("modal-card-head", `has-background-${headColor}`)}>
-          <h2 className={`modal-card-title m-0 has-text-${headTextColor}`}>{title}</h2>
-          <button
-            className="delete"
-            aria-label="close"
-            onClick={closeFunction}
-            ref={!initialFocusRef ? closeButtonRef : undefined}
-          />
-        </Dialog.Title>
-        <section
+    <Dialog.Root open={active}>
+      <Dialog.Portal>
+        <div
           className={classNames(
-            "modal-card-body",
+            "modal",
+            { "is-active": active },
             `is-overflow-${overflowAttribute}`,
-            `is-border-bottom-radius-${borderBottomRadiusAttribute}`
+            `is-border-bottom-radius-${borderBottomRadiusAttribute}`,
+            className
           )}
         >
-          {body || children}
-        </section>
-        {showFooter}
-      </SizedModal>
-    </Dialog>
+          <Dialog.Overlay className="modal-background" onClick={closeFunction} />
+          <SizedModal
+            onOpenAutoFocus={event => {
+              event.preventDefault();
+              (initialFocusRef ?? closeButtonRef).current?.focus();
+            }}
+            onEscapeKeyDown={closeFunction}
+            className={classNames("modal-card", className)}
+            size={size}
+            overflow={overflowAttribute}
+          >
+            <Dialog.Title asChild>
+              <header className={classNames("modal-card-head", `has-background-${headColor}`)}>
+                <h2 className={`modal-card-title m-0 has-text-${headTextColor}`}>{title}</h2>
+                <Dialog.Close
+                  className="delete"
+                  aria-label="close"
+                  onClick={closeFunction}
+                  ref={!initialFocusRef ? closeButtonRef : undefined}
+                />
+              </header>
+            </Dialog.Title>
+            <section
+              className={classNames(
+                "modal-card-body",
+                `is-overflow-${overflowAttribute}`,
+                `is-border-bottom-radius-${borderBottomRadiusAttribute}`
+              )}
+            >
+              {body || children}
+            </section>
+            {showFooter}
+          </SizedModal>
+        </div>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 };
 

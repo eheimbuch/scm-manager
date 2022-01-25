@@ -65,7 +65,7 @@
     "worker-plugin": "^3.2.0"
   },
   "dependencies": {
-    "@headlessui/react": "^1.4.3",
+    "@radix-ui/react-dialog": "^0.1.5",
     "@scm-manager/ui-api": "^2.30.2-SNAPSHOT",
     "@scm-manager/ui-extensions": "^2.30.2-SNAPSHOT",
     "@scm-manager/ui-types": "^2.30.2-SNAPSHOT",
