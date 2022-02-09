@@ -30,6 +30,7 @@ import Login from "./Login";
 import { useIndex, useSubject } from "@scm-manager/ui-api";
 import NavigationBar from "./NavigationBar";
 import styled from "styled-components";
+import { FeedbackForm } from "../FeedbackForm";
 
 const AppWrapper = styled.div`
   min-height: 100vh;
@@ -65,6 +66,7 @@ const App: FC = () => {
 
   return (
     <AppWrapper className="App">
+      <FeedbackForm />
       <Header authenticated={authenticated} links={index._links}>
         <NavigationBar links={index._links} />
       </Header>
