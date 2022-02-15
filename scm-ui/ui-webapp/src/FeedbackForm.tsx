@@ -78,9 +78,9 @@ export const Feedback: FC = () => {
 const TriggerButton = styled(Button)`
   position: fixed;
   z-index: 9999999;
-  right: 0;
-  bottom: 0;
-  border-radius: 0.2rem 0 0 0;
+  right: 1rem;
+  bottom: -1px;
+  border-radius: 0.2rem 0.2rem 0 0;
 `;
 
 const FeedbackTriggerButton: FC<{ openModal: () => void }> = ({ openModal }) => {
