@@ -22,31 +22,78 @@
  * SOFTWARE.
  */
 
-import { FC } from "react";
-import { useSubject } from "@scm-manager/ui-api";
+import React, { FC, useEffect, useState } from "react";
+import { Button, ErrorNotification, Loading, Modal } from "@scm-manager/ui-components";
+import styled from "styled-components";
 
-const loadFeedbackForm = () => {
-  const id = "wMLGE74pg82Hrp4vslZWoS7MuPBrSnoIuDmOiSYK";
-  const js = document.createElement("script");
-  js.setAttribute("type", "text/javascript");
-  js.setAttribute("src", "//deploy.mopinion.com/js/pastease.js");
-  js.async = true;
-  document.getElementsByTagName("head")[0].appendChild(js);
-  const t = setInterval(function() {
-    try {
-      //@ts-ignore Cannot resolve Pastease
+declare const Pastease: { load: (id: string) => void };
+
+const useFeedbackForm = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>();
+
+  useEffect(() => {
+    const id = "wMLGE74pg82Hrp4vslZWoS7MuPBrSnoIuDmOiSYK";
+    const js = document.createElement("script");
+    js.setAttribute("type", "text/javascript");
+    js.setAttribute("src", "//deploy.mopinion.com/js/pastease.js");
+    js.setAttribute("id", "pasteaseLoaderScript");
+    js.onerror = () => setError(new Error("Failed to load feedback form"));
+    js.async = true;
+    js.onload = () => {
+      setIsLoading(false);
       Pastease.load(id);
-      clearInterval(t);
-    } catch (e) {}
-  }, 50);
-  return null;
+    };
+    document.getElementsByTagName("head")[0].appendChild(js);
+    return () => {
+      const pasteaseLoader = document.getElementById("pasteaseLoaderScript");
+      if (pasteaseLoader) {
+        document.getElementsByTagName("head")[0].removeChild(pasteaseLoader);
+      }
+
+      const mopinionScript = document.getElementById("mopinionFeedbackScript");
+      if (mopinionScript) {
+        document.getElementsByTagName("head")[0].removeChild(mopinionScript);
+      }
+    };
+  }, []);
+
+  return {
+    isLoading,
+    error,
+    id: "surveyContent"
+  };
 };
 
-export const FeedbackForm: FC = () => {
-  const { isAuthenticated } = useSubject();
+export const Feedback: FC = () => {
+  const [showModal, setShowModal] = useState(false);
 
-  if (!isAuthenticated) {
-    return null;
+  if (showModal) {
+    return <FeedbackForm close={() => setShowModal(false)} />;
   }
-  return loadFeedbackForm();
+
+  return <FeedbackTriggerButton openModal={() => setShowModal(true)} />;
+};
+
+const TriggerButton = styled(Button)`
+  position: fixed;
+  z-index: 9999999;
+  right: 0;
+  bottom: 0;
+  border-radius: 0.2rem 0 0 0;
+`;
+
+const FeedbackTriggerButton: FC<{ openModal: () => void }> = ({ openModal }) => {
+  return <TriggerButton action={openModal} color="info" label="Feedback" icon="comment" />;
+};
+
+const FeedbackForm: FC<{ close: () => void }> = ({ close }) => {
+  const { isLoading, error, id } = useFeedbackForm();
+  return (
+    <Modal title={"Leave us some feedback"} active={true} closeFunction={close}>
+      {isLoading ? <Loading /> : null}
+      {error ? <ErrorNotification error={error} /> : null}
+      <div id={id} />
+    </Modal>
+  );
 };
