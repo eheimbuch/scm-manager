@@ -77,7 +77,7 @@ class DefaultRepositoryExportingCheckTest {
   void shouldThrowExportingExceptionWithId() {
     RepositoryExportingCheck check = new TestingRepositoryExportingCheck();
 
-    assertThrows(RepositoryExportingException.class, () -> check.check("exporting_hog"));
+    assertThrows(AbstractMethodError.class, () -> check.check("exporting_hog"));
   }
 
   private static class TestingRepositoryExportingCheck implements RepositoryExportingCheck {
