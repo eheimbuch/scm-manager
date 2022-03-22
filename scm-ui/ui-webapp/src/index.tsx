@@ -36,6 +36,7 @@ import ChangesetShortLink from "./repos/components/changesets/ChangesetShortLink
 
 import "./tokenExpired";
 import { ApiProvider } from "@scm-manager/ui-api";
+import "./styles/tailwind.css";
 
 binder.bind("changeset.description.tokens", ChangesetShortLink);
 
