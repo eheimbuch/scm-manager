@@ -111,22 +111,6 @@ module.exports = [
                 modules: { auto: true }
               }
             },
-            {
-              loader: "postcss-loader",
-              options: {
-                postcssOptions: {
-                  plugins: [
-                    [
-                      "tailwindcss",
-                      {
-                        config: path.join(root, "ui-scripts", "src", "tailwind.config.js")
-                      }
-                    ],
-                    ["autoprefixer", {}]
-                  ]
-                }
-              }
-            },
             // Compiles Sass to CSS
             "sass-loader"
           ]
@@ -245,6 +229,60 @@ module.exports = [
     output: {
       path: path.resolve(root, "build", "webapp", "assets"),
       filename: "[name].bundle.js"
+    }
+  },
+  {
+    ...base,
+    entry: {
+      webapp: "./ui-scripts/src/tailwind.css"
+    },
+    module: {
+      rules: [
+        {
+          test: /\.(css|scss|sass)$/i,
+          use: [
+            {
+              loader: MiniCssExtractPlugin.loader
+            },
+            {
+              loader: "css-loader",
+              options: {
+                importLoaders: 1
+              }
+            },
+            {
+              loader: "postcss-loader",
+              options: {
+                postcssOptions: {
+                  plugins: [
+                    [
+                      "tailwindcss",
+                      {
+                        config: path.join(root, "ui-scripts", "src", "tailwind.config.js")
+                      }
+                    ],
+                    ["autoprefixer", {}]
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    plugins: [
+      new MiniCssExtractPlugin({
+        filename: "[name].tailwind.css",
+        ignoreOrder: false
+      })
+    ],
+    optimization: {
+      // TODO only on production?
+      minimizer: [new OptimizeCSSAssetsPlugin({})]
+    },
+    output: {
+      path: path.resolve(root, "build", "webapp", "tailwind"),
+      filename: "[name].tailwind.js"
     }
   }
 ];
