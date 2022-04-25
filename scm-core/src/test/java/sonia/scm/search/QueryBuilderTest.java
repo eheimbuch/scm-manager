@@ -74,6 +74,8 @@ class QueryBuilderTest {
     assertThat(params.getFilters()).isEmpty();
     assertThat(params.getStart()).isZero();
     assertThat(params.getLimit()).isEqualTo(10);
+    assertThat(params.getSortBy()).isNull();
+    assertThat(params.isDesc()).isFalse();
   }
 
   private class CapturingQueryBuilder<T> extends QueryBuilder<T> {

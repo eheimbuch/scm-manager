@@ -45,6 +45,10 @@ public abstract class QueryBuilder<T> {
   private int start = 0;
   private int limit = 10;
 
+  private String sortBy = null;
+
+  private boolean desc = false;
+
   /**
    * Return only results which are related to the given part of the id.
    * Note: this function can be called multiple times.
@@ -106,13 +110,42 @@ public abstract class QueryBuilder<T> {
   }
 
   /**
+   * Defines a field to be sorted by.
+   * Sorts ascending by default.
+   *
+   * @param field the field to be sorted by
+   * @return {@code this}
+   *
+   * @since 2.33.0
+   */
+  public QueryBuilder<T> sort(String field) {
+    this.sortBy = field;
+    return this;
+  }
+
+  /**
+   * Defines a field to be sorted by and whether sorting should be reversed.
+   *
+   * @param field the field to be sorted by
+   * @param desc whether sorting should be reversed
+   * @return {@code this}
+   *
+   * @since 2.33.0
+   */
+  public QueryBuilder<T> sort(String field, boolean desc) {
+    this.sortBy = field;
+    this.desc = desc;
+    return this;
+  }
+
+  /**
    * Executes the query and returns the matches.
    *
    * @param queryString searched query
    * @return result of query
    */
   public QueryResult execute(String queryString){
-    return execute(new QueryParams(queryString, filters, start, limit));
+    return execute(new QueryParams(queryString, filters, start, limit, sortBy, desc));
   }
 
 
@@ -125,7 +158,7 @@ public abstract class QueryBuilder<T> {
    * @since 2.22.0
    */
   public QueryCountResult count(String queryString) {
-    return count(new QueryParams(queryString, filters, start, limit));
+    return count(new QueryParams(queryString, filters, start, limit, sortBy, desc));
   }
 
 
@@ -155,6 +188,16 @@ public abstract class QueryBuilder<T> {
     Map<Class<?>, String> filters;
     int start;
     int limit;
+
+    /**
+     * @since 2.33.0
+     */
+    String sortBy;
+
+    /**
+     * @since 2.33.0
+     */
+    boolean desc;
 
   }
 }

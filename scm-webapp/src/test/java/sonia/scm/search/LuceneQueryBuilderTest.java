@@ -312,6 +312,26 @@ class LuceneQueryBuilderTest {
   }
 
   @Test
+  void shouldSortByRepository() throws IOException {
+    try (IndexWriter writer = writer()) {
+      writer.addDocument(repositoryDoc("Awesome content one", "abc"));
+      writer.addDocument(repositoryDoc("Awesome content two", "cde"));
+      writer.addDocument(repositoryDoc("Awesome content three", "fgh"));
+    }
+
+    QueryResult result = query(
+      Simple.class, "content:awesome", builder -> builder.sort("repository", true)
+    );
+
+    assertThat(result.getTotalHits()).isEqualTo(3);
+
+    List<Hit> hits = result.getHits();
+    assertThat(hits.stream().map(it -> ((Hit.ValueField) it.getFields().get("repository")).getValue()))
+      .hasSize(3)
+      .contains("fgh", "cde", "abc");
+  }
+
+  @Test
   void shouldReturnStringFields() throws IOException {
     try (IndexWriter writer = writer()) {
       writer.addDocument(simpleDoc("Awesome"));

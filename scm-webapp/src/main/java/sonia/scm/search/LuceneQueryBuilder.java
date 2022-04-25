@@ -38,7 +38,11 @@ import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.TopDocsCollector;
+import org.apache.lucene.search.TopFieldCollector;
 import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.search.WildcardQuery;
@@ -76,10 +80,15 @@ public class LuceneQueryBuilder<T> extends QueryBuilder<T> {
 
   @Override
   protected QueryResult execute(QueryParams queryParams) {
-    TopScoreDocCollector topScoreCollector = createTopScoreCollector(queryParams);
-    return search(queryParams, topScoreCollector, (searcher, query) -> {
+    TopDocsCollector<?> collector;
+    if (!Strings.isNullOrEmpty(queryParams.getSortBy())) {
+      collector = createTopFieldCollector(queryParams);
+    } else {
+      collector = createTopScoreCollector(queryParams);
+    }
+    return search(queryParams, collector, (searcher, query) -> {
       QueryResultFactory resultFactory = new QueryResultFactory(analyzer, searcher, searchableType, query);
-      return resultFactory.create(getTopDocs(queryParams, topScoreCollector));
+      return resultFactory.create(getTopDocs(queryParams, collector));
     });
   }
 
@@ -109,8 +118,31 @@ public class LuceneQueryBuilder<T> extends QueryBuilder<T> {
     return TopScoreDocCollector.create(queryParams.getStart() + queryParams.getLimit(), Integer.MAX_VALUE);
   }
 
-  private TopDocs getTopDocs(QueryParams queryParams, TopScoreDocCollector topScoreCollector) {
-    return topScoreCollector.topDocs(queryParams.getStart(), queryParams.getLimit());
+  private TopFieldCollector createTopFieldCollector(QueryParams queryParams) {
+    return TopFieldCollector.create(createSort(queryParams), queryParams.getStart() + queryParams.getLimit(), Integer.MAX_VALUE);
+  }
+
+  private Sort createSort(QueryParams queryParams) {
+    LuceneSearchableField searchableField = searchableType.getFields().stream()
+      .filter(it -> it.getName().equals(queryParams.getSortBy()))
+      .findFirst().orElseThrow(IllegalArgumentException::new);
+    return new Sort(new SortField(searchableField.getName(), getSortFieldType(searchableField), queryParams.isDesc()));
+  }
+
+  private SortField.Type getSortFieldType(LuceneSearchableField field) {
+    Class<?> fieldType = field.getType();
+    if (TypeCheck.isString(fieldType)) {
+      return SortField.Type.STRING;
+    } else if (TypeCheck.isInstant(fieldType) || TypeCheck.isLong(fieldType)) {
+      return SortField.Type.LONG;
+    } else if (TypeCheck.isInteger(fieldType)) {
+      return SortField.Type.INT;
+    }
+    throw new UnsupportedTypeOfFieldException(fieldType, field.getName());
+  }
+
+  private TopDocs getTopDocs(QueryParams queryParams, TopDocsCollector<?> topDocsCollector) {
+    return topDocsCollector.topDocs(queryParams.getStart(), queryParams.getLimit());
   }
 
   private Query createQuery(LuceneSearchableType searchableType, QueryParams queryParams, String queryString) {
