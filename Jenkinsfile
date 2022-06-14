@@ -59,6 +59,37 @@ pipeline {
       }
     }
 
+    stage('Security Scan') {
+      steps {
+        withEnv(['JENKINS_NODE_COOKIE=dontKillMe']) {
+          sh 'nohup bash ./gradlew run &'
+          sleep 120
+          sh '''
+            docker pull owasp/zap2docker-stable
+            docker run --net=host -dt --name owasp \
+             owasp/zap2docker-stable \
+             /bin/bash
+            docker exec owasp mkdir /zap/wrk
+            docker exec owasp \
+             zap-baseline.py \
+             -t http://localhost:8081/scm \
+             -P 8081
+             -r report.html \
+             -x report.xml \
+             -d \
+             -I
+            docker cp owasp:/zap/wrk/report.xml ${WORKSPACE}/report.xml
+            docker cp owasp:/zap/wrk/report.html ${WORKSPACE}/report.html
+          '''
+        }
+      }
+      post {
+        always {
+          sh 'docker stop owasp && docker rm owasp && ./gradlew --stop'
+        }
+      }
+    }
+
     stage('Check') {
       steps {
         catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
