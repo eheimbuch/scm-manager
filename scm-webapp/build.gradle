@@ -142,6 +142,9 @@ dependencies {
 
   // shiro unit
   testImplementation libraries.shiroUnit
+
+  // css parsing
+  implementation libraries.cssParser
 }
 
 war {

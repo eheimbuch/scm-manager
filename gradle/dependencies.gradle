@@ -27,6 +27,10 @@ ext {
   yarnVersion = '1.22.18'
 
   libraries = [
+    // css parsing
+    cssParserCommons: 'com.helger.commons:ph-commons:10.1.6',
+    cssParser: 'com.helger:ph-css:6.5.0',
+
     // lombok
     lombok: 'org.projectlombok:lombok:1.18.10',
 

@@ -2,9 +2,14 @@ package sonia.scm.web.tailwind;
 
 import com.github.sdorra.webresources.CacheControl;
 import com.github.sdorra.webresources.WebResourceSender;
+import com.google.common.collect.Iterables;
 import com.google.common.io.ByteStreams;
+import com.google.common.io.Resources;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.helger.css.ECSSVersion;
+import com.helger.css.decl.CascadingStyleSheet;
+import com.helger.css.reader.CSSReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sonia.scm.filter.WebElement;
@@ -17,13 +22,21 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static sonia.scm.PushStateDispatcherProvider.PROPERTY_TARGET;
 
@@ -32,6 +45,8 @@ import static sonia.scm.PushStateDispatcherProvider.PROPERTY_TARGET;
 public class StylesServlet extends HttpServlet {
   private static final Logger LOG = LoggerFactory.getLogger(StylesServlet.class);
   private final UberWebResourceLoader webResourceLoader;
+  @javax.annotation.Nonnull
+  private final PluginLoader pluginLoader;
   private final String target = System.getProperty(PROPERTY_TARGET);
 
   private final WebResourceSender sender = WebResourceSender.create()
@@ -43,6 +58,7 @@ public class StylesServlet extends HttpServlet {
   @Inject
   public StylesServlet(PluginLoader pluginLoader) {
     this.webResourceLoader = pluginLoader.getUberWebResourceLoader();
+    this.pluginLoader = pluginLoader;
   }
 
   @Override
@@ -50,6 +66,21 @@ public class StylesServlet extends HttpServlet {
     try {
       URL url = webResourceLoader.getResource("/assets/webapp.bundle.css");
       if (url != null) {
+        Stream<URL> pluginUrls = pluginLoader.getInstalledPlugins().stream()
+          .map(plugin -> webResourceLoader.getResource("/assets/" + plugin.getId() + ".bundle.css"));
+        Optional<CascadingStyleSheet> css = Stream.concat(pluginUrls, Stream.of(url))
+          .filter(Objects::nonNull)
+          .map(pluginCssUrl -> {
+            try {
+              return Resources.toString(pluginCssUrl, Charset.defaultCharset());
+            } catch (IOException e) {
+              return null;
+            }
+          })
+          .filter(Objects::nonNull)
+          .reduce((prev, cur) -> prev + cur)
+          .map(cssContent -> CSSReader.readFromString(cssContent, ECSSVersion.CSS30));
+
         // TODO: Merge css
         sender.resource(url).get(request, response);
       } else {
