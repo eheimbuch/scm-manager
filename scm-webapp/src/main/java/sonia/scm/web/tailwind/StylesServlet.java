@@ -12,6 +12,8 @@ import com.helger.css.decl.CascadingStyleSheet;
 import com.helger.css.reader.CSSReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sonia.scm.ContextEntry;
+import sonia.scm.NotFoundException;
 import sonia.scm.filter.WebElement;
 import sonia.scm.plugin.PluginLoader;
 import sonia.scm.plugin.UberWebResourceLoader;
@@ -68,7 +70,7 @@ public class StylesServlet extends HttpServlet {
       if (url != null) {
         Stream<URL> pluginUrls = pluginLoader.getInstalledPlugins().stream()
           .map(plugin -> webResourceLoader.getResource("/assets/" + plugin.getId() + ".bundle.css"));
-        Optional<CascadingStyleSheet> css = Stream.concat(pluginUrls, Stream.of(url))
+        CascadingStyleSheet css = Stream.concat(pluginUrls, Stream.of(url))
           .filter(Objects::nonNull)
           .map(pluginCssUrl -> {
             try {
@@ -79,7 +81,8 @@ public class StylesServlet extends HttpServlet {
           })
           .filter(Objects::nonNull)
           .reduce((prev, cur) -> prev + cur)
-          .map(cssContent -> CSSReader.readFromString(cssContent, ECSSVersion.CSS30));
+          .map(cssContent -> CSSReader.readFromString(cssContent, ECSSVersion.CSS30))
+          .orElseThrow(() -> NotFoundException.notFound(new ContextEntry.ContextBuilder()));
 
         // TODO: Merge css
         sender.resource(url).get(request, response);
